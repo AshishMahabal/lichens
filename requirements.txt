@@ -1,0 +1,12 @@
+streamlit>=1.36
+pandas>=2.2
+numpy>=1.26
+pyarrow>=14
+tqdm>=4.66
+
+geopandas>=0.14
+shapely>=2.0
+pyproj>=3.6
+matplotlib>=3.8
+cartopy>=0.22
+

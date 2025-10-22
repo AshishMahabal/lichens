@@ -1,3 +1,9 @@
+# keep big raw files out
+*.tsv
+*.zip
+*.csv
+occurrences.parquet/region=USA/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
