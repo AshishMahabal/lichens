@@ -197,35 +197,51 @@ def main():
                                    value=(int(max(year_min, year_max-10)), int(year_max)), step=1)
     years_selected = [y for y in years_available if year_range[0] <= y <= year_range[1]]
 
-    # Taxon filters
+    # ---- Robust taxonomy filters ----
     cat = load_species_catalog(data_dir)
-    phyla = sorted(cat["phylum"].dropna().unique().tolist())
-    phyla_sel = st.sidebar.multiselect("Phylum", phyla, default=[])
-    classes = sorted(cat.loc[cat["phylum"].isin(phyla_sel) if phyla_sel else cat.index, "class"].dropna().unique().tolist())
-    classes_sel = st.sidebar.multiselect("Class", classes, default=[])
-    genera = sorted(cat.loc[
-        (cat["phylum"].isin(phyla_sel) if phyla_sel else True)
-        & (cat["class"].isin(classes_sel) if classes_sel else True),
-        "genus"
-    ].dropna().unique().tolist())
-    genera_sel = st.sidebar.multiselect("Genus", genera, default=[])
-    # species choices are long; offer optional filter
-    species_choices = cat.loc[
-        (cat["phylum"].isin(phyla_sel) if phyla_sel else True)
-        & (cat["class"].isin(classes_sel) if classes_sel else True)
-        & (cat["genus"].isin(genera_sel) if genera_sel else True),
-        ["speciesKey","species"]
-    ].dropna().drop_duplicates().sort_values("species")
+    
+    def _subset(df: pd.DataFrame, col: str, selected: list[str] | list[int] | set) -> pd.DataFrame:
+        """Return df filtered by df[col] ∈ selected if selected is non-empty; else df unchanged."""
+        if selected:
+            return df[df[col].isin(selected)]
+        return df
+    
+    # Start from full catalog; progressively narrow it based on prior selections
+    phyla_all   = sorted(cat["phylum"].dropna().unique().tolist())
+    phyla_sel   = st.sidebar.multiselect("Phylum", phyla_all, default=[])
+    
+    cat_p       = _subset(cat, "phylum", phyla_sel)
+    
+    classes_all = sorted(cat_p["class"].dropna().unique().tolist())
+    classes_sel = st.sidebar.multiselect("Class", classes_all, default=[])
+    
+    cat_pc      = _subset(cat_p, "class", classes_sel)
+    
+    genera_all  = sorted(cat_pc["genus"].dropna().unique().tolist())
+    genera_sel  = st.sidebar.multiselect("Genus", genera_all, default=[])
+    
+    cat_pcg     = _subset(cat_pc, "genus", genera_sel)
+    
+    species_choices = (
+        cat_pcg[["speciesKey", "species"]]
+        .dropna(subset=["speciesKey", "species"])
+        .drop_duplicates()
+        .sort_values("species")
+    )
     species_map = dict(zip(species_choices["species"], species_choices["speciesKey"]))
     species_names_sel = st.sidebar.multiselect("Species (optional)", list(species_map.keys()), default=[])
-
-    tax_filters = {}
-    if phyla_sel:  tax_filters["phylum"] = phyla_sel
-    if classes_sel: tax_filters["class"] = classes_sel
-    if genera_sel: tax_filters["genus"] = genera_sel
+    
+    tax_filters: dict = {}
+    if phyla_sel:
+        tax_filters["phylum"] = phyla_sel
+    if classes_sel:
+        tax_filters["class"] = classes_sel
+    if genera_sel:
+        tax_filters["genus"] = genera_sel
     if species_names_sel:
-        sel_keys = set(species_map[n] for n in species_names_sel)
-        tax_filters["speciesKey"] = sel_keys  # handled below
+        sel_keys = {species_map[n] for n in species_names_sel}
+        tax_filters["speciesKey"] = sel_keys  # applied to points before grid-agg
+
 
     cell = st.sidebar.select_slider("Grid size (deg)", options=[0.5, 0.25, 0.1, 0.05, 0.02, 0.01], value=0.05)
     metric = st.sidebar.radio("Metric", ["Species richness (unique species)", "Occurrence density (records)"])
@@ -233,6 +249,12 @@ def main():
 
     # Load points
     df = load_points(data_dir, region, years_selected)
+
+    # Apply explicit species selection first (if any)
+    if "speciesKey" in tax_filters:
+        df = df[df["speciesKey"].isin(tax_filters["speciesKey"])]
+        tax_filters.pop("speciesKey", None)  # remaining filters handled inside make_grid_agg
+
     if df.empty:
         st.warning("No points for selected filters.")
         st.stop()
