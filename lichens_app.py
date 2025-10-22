@@ -180,6 +180,18 @@ def main():
     args, _ = parser.parse_known_args()
     data_dir = Path(args.data_dir)
 
+    import os
+
+    # Detect data directory automatically
+    default_data = Path(__file__).parent / "data_dir"
+    data_dir_env = os.getenv("DATA_DIR", str(default_data))
+    
+    data_dir = Path(data_dir_env)
+    if not data_dir.exists():
+        st.error(f"Data directory not found: {data_dir}")
+        st.stop()
+
+
     regions = load_regions(data_dir)
     if not regions:
         st.error("No regions found. Did you run the preprocessor and point --data-dir correctly?")
