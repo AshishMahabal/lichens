@@ -174,11 +174,11 @@ def main():
     )
 
 
-    # Parse CLI flag passed after '--'
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--data-dir", required=True)
-    args, _ = parser.parse_known_args()
-    data_dir = Path(args.data_dir)
+#    # Parse CLI flag passed after '--'
+#    parser = argparse.ArgumentParser(add_help=False)
+#    parser.add_argument("--data-dir", required=True)
+#    args, _ = parser.parse_known_args()
+#    data_dir = Path(args.data_dir)
 
     import os
 
