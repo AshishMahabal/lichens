@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Interactive Streamlit app for lichen richness/density:
-- Choose Region (USA, CA, LA County, Pasadena)
+- Choose Region (CA, LA County, Pasadena)
 - Time filter (year range)
 - Taxon filters (phylum, class, genus, species)
 - Grid size and metric (records vs species richness)
@@ -63,7 +63,7 @@ def build_equal_angle_grid(bbox, cell):
 @st.cache_data(show_spinner=False)
 def load_regions(data_dir: Path) -> Dict[str, gpd.GeoDataFrame]:
     regions = {}
-    for name in ("USA", "California", "Los_Angeles_County", "Pasadena"):
+    for name in ("California", "Los_Angeles_County", "Pasadena"):
         gpkg = data_dir / "regions" / f"{name}.gpkg"
         if gpkg.exists():
             regions[name] = gpd.read_file(gpkg)
@@ -165,7 +165,7 @@ def make_grid_agg(df: pd.DataFrame, poly: gpd.GeoDataFrame, cell: float,
 
 def main():
     st.set_page_config(page_title="Lichen Explorer", layout="wide")
-    st.title("🧫 Lichen Explorer — USA / CA / LA / Pasadena")
+    st.title("🧫 Lichen Explorer — CA / LA / Pasadena")
     st.markdown(
         "<div style='text-align:center; font-size:14px; color:gray;'>"
         "Created by <b>Ashish Mahabal</b> with GBIF data using ChatGPT 5"
@@ -255,7 +255,7 @@ def main():
         tax_filters["speciesKey"] = sel_keys  # applied to points before grid-agg
 
 
-    cell = st.sidebar.select_slider("Grid size (deg)", options=[0.5, 0.25, 0.1, 0.05, 0.02, 0.01], value=0.05)
+    cell = st.sidebar.select_slider("Grid size (deg)", options=[0.5, 0.25, 0.1, 0.05], value=0.25)
     metric = st.sidebar.radio("Metric", ["Species richness (unique species)", "Occurrence density (records)"])
     contrast = st.sidebar.radio("Contrast", ["pct", "log", "none"], index=0)
 
